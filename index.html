@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Tally Board Games</title>
+<style>
+  :root{
+    --navy:#16334f;
+    --blue:#2e6da4;
+    --blue-light:#5b96cc;
+    --paper:#f7f8fa;
+    --paper-2:#ffffff;
+    --steel:#5b6b78;
+    --steel-light:#9aa7b1;
+    --accent:#e8a33d;
+    --green:#3f8f5f;
+    --red:#c0463c;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    font-family:'Helvetica Neue', Arial, sans-serif;
+    color:var(--navy);
+    min-height:100vh;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .stencil{
+    font-family: Arial Black, Arial, sans-serif;
+    font-weight:900;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+  }
+  .screen{
+    display:none;
+    min-height:100vh;
+    flex-direction:column;
+  }
+  .screen.active{display:flex;}
+
+  /* ===== Header / tally board ===== */
+  .tallyboard{
+    background:var(--navy);
+    color:white;
+    padding:22px 18px 18px;
+    position:relative;
+    border-bottom:6px solid var(--blue);
+  }
+  .tallyboard .rivets{
+    display:flex;
+    justify-content:space-between;
+    padding:0 2px;
+    margin-bottom:6px;
+  }
+  .tallyboard .rivets span{
+    width:6px;height:6px;border-radius:50%;
+    background:var(--blue-light);
+    opacity:0.6;
+  }
+  .tallyboard h1{
+    font-size:30px;
+    margin:4px 0 2px;
+    line-height:1.05;
+  }
+  .tallyboard .sub{
+    color:var(--blue-light);
+    font-size:15px;
+    font-weight:600;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+  }
+  .pipejoint{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    margin:14px 0;
+    padding:0 18px;
+  }
+  .pipejoint .line{flex:1;height:3px;background:var(--steel-light);border-radius:2px;}
+  .pipejoint .ticks{display:flex;gap:4px;}
+  .pipejoint .ticks span{width:2px;height:14px;background:var(--steel-light);}
+
+  /* ===== Home screen ===== */
+  .home-body{
+    flex:1;
+    padding:18px 18px 40px;
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+  }
+  .today-tag{
+    background:var(--accent);
+    color:var(--navy);
+    border-radius:10px;
+    padding:14px 16px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    box-shadow:0 3px 0 rgba(0,0,0,0.12);
+  }
+  .today-tag .label{
+    font-size:13px;
+    font-weight:800;
+    letter-spacing:0.08em;
+  }
+  .today-tag .pick{
+    font-size:20px;
+    font-weight:800;
+    flex:1;
+  }
+  .card{
+    background:var(--paper-2);
+    border:3px solid var(--navy);
+    border-radius:var(--radius);
+    padding:22px 20px;
+    display:flex;
+    align-items:center;
+    gap:18px;
+    cursor:pointer;
+    transition:transform 0.08s ease, box-shadow 0.08s ease;
+    box-shadow:0 4px 0 rgba(22,51,79,0.18);
+    min-height:88px;
+  }
+  .card:active{
+    transform:translateY(3px);
+    box-shadow:0 1px 0 rgba(22,51,79,0.18);
+  }
+  .card .icon{
+    width:58px;height:58px;
+    border-radius:50%;
+    background:var(--blue);
+    flex-shrink:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:30px;
+  }
+  .card .text h2{
+    margin:0 0 4px;
+    font-size:23px;
+    color:var(--navy);
+  }
+  .card .text p{
+    margin:0;
+    font-size:15px;
+    color:var(--steel);
+    font-weight:600;
+  }
+  .card.trivia .icon{background:var(--blue);}
+  .card.wordsearch .icon{background:var(--green);}
+  .card.match .icon{background:var(--accent);}
+  .card.mind .icon{background:#7d5fa3;}
+
+  .footer-note{
+    text-align:center;
+    color:var(--steel-light);
+    font-size:13px;
+    margin-top:auto;
+    padding-top:10px;
+  }
+
+  /* ===== Generic game screen chrome ===== */
+  .game-header{
+    background:var(--navy);
+    color:white;
+    padding:16px 14px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    border-bottom:6px solid var(--blue);
+  }
+  .back-btn{
+    background:var(--blue);
+    color:white;
+    border:none;
+    border-radius:10px;
+    padding:12px 16px;
+    font-size:20px;
+    font-weight:800;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .game-header h2{
+    font-size:20px;
+    margin:0;
+    flex:1;
+  }
+  .game-body{
+    flex:1;
+    padding:20px 18px 40px;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+    max-width:600px;
+    width:100%;
+    margin:0 auto;
+  }
+
+  /* ===== Trivia ===== */
+  .progress-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    font-weight:700;
+    color:var(--steel);
+    font-size:15px;
+  }
+  .score-pill{
+    background:var(--navy);
+    color:white;
+    border-radius:20px;
+    padding:6px 14px;
+    font-size:15px;
+    font-weight:800;
+  }
+  .q-card{
+    background:var(--paper-2);
+    border:3px solid var(--navy);
+    border-radius:var(--radius);
+    padding:24px 20px;
+  }
+  .q-eyebrow{
+    font-size:13px;
+    font-weight:800;
+    letter-spacing:0.08em;
+    color:var(--blue);
+    margin-bottom:8px;
+  }
+  .q-text{
+    font-size:22px;
+    font-weight:700;
+    color:var(--navy);
+    line-height:1.3;
+  }
+  .choices{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+  .choice-btn{
+    background:var(--paper-2);
+    border:3px solid var(--steel-light);
+    border-radius:12px;
+    padding:18px 18px;
+    font-size:19px;
+    font-weight:700;
+    color:var(--navy);
+    text-align:left;
+    width:100%;
+    transition:background 0.15s, border-color 0.15s;
+  }
+  .choice-btn.correct{
+    background:#e6f4ea;
+    border-color:var(--green);
+    color:var(--green);
+  }
+  .choice-btn.wrong{
+    background:#fbe9e7;
+    border-color:var(--red);
+    color:var(--red);
+  }
+  .choice-btn[disabled]{opacity:1;}
+  .next-btn{
+    background:var(--blue);
+    color:white;
+    border:none;
+    border-radius:12px;
+    padding:18px;
+    font-size:20px;
+    font-weight:800;
+    margin-top:4px;
+  }
+  .feedback{
+    font-size:17px;
+    font-weight:700;
+    color:var(--steel);
+    min-height:24px;
+  }
+  .result-screen{
+    text-align:center;
+    padding:30px 10px;
+  }
+  .result-screen .big-num{
+    font-size:56px;
+    font-weight:900;
+    color:var(--blue);
+  }
+  .result-screen p{
+    font-size:18px;
+    color:var(--steel);
+    font-weight:600;
+  }
+
+  /* ===== Word search ===== */
+  .ws-grid-wrap{
+    overflow:auto;
+    display:flex;
+    justify-content:center;
+  }
+  .ws-grid{
+    display:grid;
+    gap:3px;
+    background:var(--navy);
+    padding:6px;
+    border-radius:10px;
+    touch-action:none;
+  }
+  .ws-cell{
+    width:34px;height:34px;
+    background:var(--paper-2);
+    color:var(--navy);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:17px;
+    font-weight:800;
+    border-radius:4px;
+    user-select:none;
+  }
+  .ws-cell.selected{background:var(--blue-light); color:white;}
+  .ws-cell.found{background:var(--green); color:white;}
+  .word-list{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    justify-content:center;
+  }
+  .word-chip{
+    background:var(--paper-2);
+    border:2px solid var(--steel-light);
+    border-radius:20px;
+    padding:8px 14px;
+    font-size:15px;
+    font-weight:700;
+    color:var(--navy);
+  }
+  .word-chip.found{
+    background:var(--green);
+    border-color:var(--green);
+    color:white;
+    text-decoration:line-through;
+  }
+
+  /* ===== Match game ===== */
+  .match-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:10px;
+  }
+  .match-card{
+    aspect-ratio:1/1;
+    background:var(--blue);
+    border-radius:12px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:32px;
+    color:white;
+    font-weight:800;
+    box-shadow:0 3px 0 rgba(22,51,79,0.25);
+  }
+  .match-card.flipped{
+    background:var(--paper-2);
+    color:var(--navy);
+    border:3px solid var(--blue);
+  }
+  .match-card.matched{
+    background:#e6f4ea;
+    border:3px solid var(--green);
+    color:var(--green);
+  }
+  .match-stats{
+    display:flex;
+    justify-content:space-between;
+    font-weight:700;
+    color:var(--steel);
+    font-size:15px;
+  }
+
+  button{font-family:inherit;cursor:pointer;}
+  .hidden{display:none !important;}
+</style>
+</head>
+<body>
+
+<!-- ============ HOME SCREEN ============ -->
+<div class="screen active" id="screen-home">
+  <div class="tallyboard">
+    <div class="rivets"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    <h1 class="stencil">Tally Board Games</h1>
+    <div class="sub">Pick a game to play</div>
+  </div>
+  <div class="pipejoint"><div class="line"></div><div class="ticks"><span></span><span></span><span></span></div><div class="line"></div></div>
+  <div class="home-body">
+    <div class="today-tag">
+      <div class="label">TODAY'S PICK</div>
+      <div class="pick" id="todays-pick">Oil Field Trivia</div>
+    </div>
+
+    <div class="card trivia" onclick="openGame('trivia')">
+      <div class="icon">❓</div>
+      <div class="text">
+        <h2>Oil Field Trivia</h2>
+        <p>Ten easy questions, big buttons</p>
+      </div>
+    </div>
+
+    <div class="card match" onclick="openGame('match')">
+      <div class="icon">🃏</div>
+      <div class="text">
+        <h2>Match Game</h2>
+        <p>Flip cards, find the pairs</p>
+      </div>
+    </div>
+
+    <div class="card mind" onclick="openGame('mind')">
+      <div class="icon">🧠</div>
+      <div class="text">
+        <h2>Mind Games</h2>
+        <p>Common knowledge and number puzzles</p>
+      </div>
+    </div>
+
+    <div class="footer-note">Tap a card to start &middot; Tap Back anytime to return here</div>
+  </div>
+</div>
+
+<!-- ============ TRIVIA SCREEN ============ -->
+<div class="screen" id="screen-trivia">
+  <div class="game-header">
+    <button class="back-btn" onclick="goHome()">&larr; Back</button>
+    <h2 class="stencil">Trivia</h2>
+  </div>
+  <div class="game-body">
+    <div class="progress-row">
+      <span id="trivia-progress">Question 1 of 10</span>
+      <span class="score-pill" id="trivia-score">Score: 0</span>
+    </div>
+    <div id="trivia-question-area"></div>
+  </div>
+</div>
+
+<!-- ============ WORD SEARCH SCREEN ============ -->
+<div class="screen" id="screen-wordsearch">
+  <div class="game-header">
+    <button class="back-btn" onclick="goHome()">&larr; Back</button>
+    <h2 class="stencil">Word Search</h2>
+  </div>
+  <div class="game-body">
+    <div class="progress-row">
+      <span id="ws-progress">Find all 6 words</span>
+      <button class="back-btn" style="font-size:16px;padding:8px 12px;" onclick="newWordSearch()">New Puzzle</button>
+    </div>
+    <div class="ws-grid-wrap">
+      <div class="ws-grid" id="ws-grid"></div>
+    </div>
+    <div class="word-list" id="ws-word-list"></div>
+  </div>
+</div>
+
+<!-- ============ MATCH GAME SCREEN ============ -->
+<div class="screen" id="screen-match">
+  <div class="game-header">
+    <button class="back-btn" onclick="goHome()">&larr; Back</button>
+    <h2 class="stencil">Match Game</h2>
+  </div>
+  <div class="game-body">
+    <div class="match-stats">
+      <span id="match-tries">Tries: 0</span>
+      <button class="back-btn" style="font-size:16px;padding:8px 12px;" onclick="newMatchGame()">New Game</button>
+    </div>
+    <div class="match-grid" id="match-grid"></div>
+  </div>
+</div>
+
+<!-- ============ MIND GAMES SCREEN ============ -->
+<div class="screen" id="screen-mind">
+  <div class="game-header">
+    <button class="back-btn" onclick="goHome()">&larr; Back</button>
+    <h2 class="stencil">Mind Games</h2>
+  </div>
+  <div class="game-body">
+    <div class="progress-row">
+      <span id="mind-progress">Question 1 of 10</span>
+      <span class="score-pill" id="mind-score">Score: 0</span>
+    </div>
+    <div id="mind-question-area"></div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   NAVIGATION
+============================================================ */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+function goHome(){ showScreen('screen-home'); }
+function openGame(name){
+  if(name==='trivia'){ showScreen('screen-trivia'); startTrivia(); }
+  if(name==='wordsearch'){ showScreen('screen-wordsearch'); newWordSearch(); }
+  if(name==='match'){ showScreen('screen-match'); newMatchGame(); }
+  if(name==='mind'){ showScreen('screen-mind'); startMind(); }
+}
+// "Today's pick" rotates based on the date so it feels fresh
+(function(){
+  const picks = ['Oil Field Trivia','Match Game','Mind Games'];
+  const day = new Date().getDate();
+  document.getElementById('todays-pick').textContent = picks[day % picks.length];
+})();
+
+/* ============================================================
+   TRIVIA GAME
+============================================================ */
+const triviaBank = [
+  // ===== Casing & tubular specifics (Bo Gray territory) =====
+  {q:"What does the '80' in API casing grade L-80 represent?", choices:["Minimum yield strength in thousands of psi","Outside diameter in millimeters","Wall thickness in 64ths of an inch","Maximum service temperature in Fahrenheit"], answer:0},
+  {q:"Which API casing grade has the highest yield strength among these?", choices:["J-55","N-80","L-80","P-110"], answer:3},
+  {q:"What is the API color band marking for J-55 casing?", choices:["One bright green band","One red band","One yellow band","Two blue bands"], answer:0},
+  {q:"What is the API color band marking for P-110 casing?", choices:["Two yellow bands","One white band","One red and one brown band","Two green bands"], answer:1},
+  {q:"What does BTC stand for in casing connections?", choices:["Buttress Thread Coupling","Beveled Tube Connector","Boxed Thread Casing","Backside Tubular Coupling"], answer:0},
+  {q:"Which is correct about L-80 casing?", choices:["It has restricted maximum hardness for sour-service use","It is the cheapest of API grades","It is electric-welded only","It is rated only for shallow wells"], answer:0},
+  {q:"What is the difference between N-80 Type 1 and N-80Q casing?", choices:["N-80Q is quenched and tempered","N-80Q has lower yield strength","N-80Q is for surface use only","N-80 Type 1 is welded"], answer:0},
+  {q:"What does the 'Q' in casing grade Q-125 stand for?", choices:["Quenched (and tempered)","Quality grade","Quick-set thread","Quad-stage rolling"], answer:0},
+  {q:"What does LTC stand for in casing connections?", choices:["Long Thread Coupling","Limited Torque Casing","Locked Tubular Connector","Light Thread Coupling"], answer:0},
+  {q:"What does STC stand for in casing connections?", choices:["Short Thread Coupling","Steel Tubing Connector","Sour-Treated Casing","Surface Test Coupling"], answer:0},
+  {q:"In sour service (H2S environment), which casing grade family is typically required?", choices:["L-80, C-90, or T-95","P-110 or Q-125","J-55 or K-55","Any standard grade"], answer:0},
+  {q:"What does the API specification 5CT cover?", choices:["Casing and tubing","Drill pipe","Line pipe","Wellhead equipment"], answer:0},
+  {q:"How many feet long is a typical Range 3 joint of casing?", choices:["About 18 feet","About 25 feet","About 34 to 48 feet","About 60 feet"], answer:2},
+  {q:"What does PSL stand for in API 5CT?", choices:["Product Specification Level","Pipe Service Length","Pressure Sealing Limit","Process Standard List"], answer:0},
+  {q:"Which API grade is between J-55 and N-80 in yield strength?", choices:["K-55","M-65","L-80","P-110"], answer:0},
+  {q:"What is the typical purpose of a casing crew's 'drift' on each joint?", choices:["Verify the inside diameter is open and round enough to run tools through","Measure outside diameter","Check pipe weight","Test thread tightness"], answer:0},
+  {q:"What does it mean to 'tally' casing?", choices:["Measure and record each joint's exact length","Inspect for cracks","Count couplings","Sort by grade"], answer:0},
+  {q:"What is a 'pup joint'?", choices:["A short length of pipe used to adjust string length","A worn-out joint","A spare coupling","A test specimen"], answer:0},
+  {q:"What does CRT stand for in modern casing running?", choices:["Casing Running Tool","Crew Rotation Time","Casing Reaming Tool","Center Rotary Table"], answer:0},
+  {q:"What torque measurement device records connection makeup data in real time?", choices:["A torque-turn unit","A drilling recorder","A weight indicator","A mud logger"], answer:0},
+
+  // ===== Offshore (his world) =====
+  {q:"In what year did the Piper Alpha platform disaster occur in the North Sea?", choices:["1985","1988","1990","1992"], answer:1},
+  {q:"How many people died in the Piper Alpha disaster?", choices:["About 50","About 80","About 167","About 300"], answer:2},
+  {q:"What company operated the Piper Alpha platform?", choices:["BP","Shell","Occidental","Mobil"], answer:2},
+  {q:"In what year did the Ocean Ranger semi-submersible drilling rig sink off Newfoundland?", choices:["1979","1982","1985","1988"], answer:1},
+  {q:"What kind of rig was the Ocean Ranger?", choices:["A jack-up","A semi-submersible","A drillship","A fixed platform"], answer:1},
+  {q:"How many crew were lost on the Ocean Ranger?", choices:["Around 30","Around 60","Around 84","Around 120"], answer:2},
+  {q:"In what year did the Alexander L. Kielland platform capsize in the North Sea?", choices:["1977","1980","1983","1986"], answer:1},
+  {q:"Which type of offshore rig sits on legs that are jacked down to the seafloor?", choices:["Drillship","Jack-up rig","Semi-submersible","Spar platform"], answer:1},
+  {q:"Which type of offshore rig floats with its hull mostly submerged for stability?", choices:["Jack-up rig","Drillship","Semi-submersible","Tension-leg platform"], answer:2},
+  {q:"What is a 'tension-leg platform'?", choices:["A floating platform anchored by vertical tendons under tension","A platform with hydraulic legs","A platform that floats freely on cables","A submarine platform"], answer:0},
+  {q:"In what year did the Deepwater Horizon explosion occur?", choices:["2008","2009","2010","2011"], answer:2},
+  {q:"How many crew died on the Deepwater Horizon?", choices:["7","11","17","23"], answer:1},
+  {q:"What company owned the Deepwater Horizon rig?", choices:["BP","Transocean","Halliburton","Shell"], answer:1},
+  {q:"Which oil company was the lease operator of the Macondo well in 2010?", choices:["BP","Chevron","ExxonMobil","Shell"], answer:0},
+  {q:"What is the Gulf of Mexico nickname for the period of summer storms that can suspend offshore work?", choices:["Hurricane season","Wave season","Sour season","Doldrums"], answer:0},
+  {q:"What is a 'subsea tree' on an offshore well?", choices:["A wellhead assembly installed on the seafloor","A type of pipeline","A subsea anchor","A floating platform"], answer:0},
+  {q:"What is a 'riser' on an offshore rig?", choices:["The pipe that connects the subsea wellhead to the rig above","A wellbore casing string","A type of anchor cable","A drilling fluid pump"], answer:0},
+  {q:"In what year did Kerr-McGee complete the first oil well out of sight of land in the Gulf of Mexico?", choices:["1937","1947","1957","1967"], answer:1},
+  {q:"How far off the Louisiana coast was the 1947 first out-of-sight offshore well?", choices:["About 10 miles","About 25 miles","About 45 miles","About 100 miles"], answer:2},
+  {q:"What is the term for the area on the seafloor where multiple subsea wells connect to a central manifold?", choices:["A subsea cluster","A template","A wellhead","A Christmas tree farm"], answer:1},
+
+  // ===== Real historical specifics =====
+  {q:"What was the depth at which the Lucas Gusher at Spindletop struck oil?", choices:["About 500 feet","About 1,000 feet","About 1,160 feet","About 2,000 feet"], answer:2},
+  {q:"What was the daily flow rate of the Lucas Gusher when it came in?", choices:["About 10,000 barrels per day","About 50,000 barrels per day","About 100,000 barrels per day","About 250,000 barrels per day"], answer:2},
+  {q:"Who was the geologist who insisted oil was under Spindletop despite skeptics?", choices:["Pattillo Higgins","Anthony Lucas","Captain Lucas","John Galey"], answer:0},
+  {q:"Who was the mining engineer who actually brought in the Spindletop well?", choices:["Anthony Lucas","Pattillo Higgins","James Guffey","Edgar Davis"], answer:0},
+  {q:"What was the name of the discovery well of the East Texas Oil Field in 1930?", choices:["Daisy Bradford No. 3","Lou Della Crim No. 1","Lathrop No. 1","Joiner No. 1"], answer:0},
+  {q:"In what year did the Conroe Crater oil field fire occur?", choices:["1930","1933","1937","1941"], answer:1},
+  {q:"What technique was used to finally kill the Conroe Crater fire in 1934?", choices:["Directional (relief) drilling","Nitroglycerin shot","Foam injection","Concrete capping"], answer:0},
+  {q:"In what year did the New London school explosion happen in Rusk County?", choices:["1933","1937","1941","1945"], answer:1},
+  {q:"What single safety practice came from the New London explosion that we still use today?", choices:["Adding a smell (odorant) to natural gas","Requiring brick construction","Cap-rock blowout preventers","Underground gas storage"], answer:0},
+  {q:"What chemical is added to give natural gas its distinct rotten-egg smell?", choices:["Mercaptan","Sulfur dioxide","Methylamine","Ethanol"], answer:0},
+  {q:"In what year did James Abercrombie and Harry Cameron patent the ram-type blowout preventer?", choices:["1916","1922","1926","1934"], answer:2},
+  {q:"In what Texas town was Cameron Iron Works founded?", choices:["Beaumont","Houston","Humble","Conroe"], answer:2},
+  {q:"What 1980 disaster saw a Texaco rig vanish into a Louisiana lake?", choices:["Lake Charles incident","Lake Peigneur disaster","Lake Pontchartrain blowout","Caddo Lake collapse"], answer:1},
+  {q:"What was beneath Lake Peigneur that the drill bit accidentally entered?", choices:["A salt mine","A natural gas pocket","An old oil reservoir","A water aquifer"], answer:0},
+  {q:"What is the Big Inch pipeline?", choices:["A WWII-era pipeline built from East Texas to the East Coast","An early Louisiana offshore pipeline","A Permian Basin gas line","A Mexican border pipeline"], answer:0},
+  {q:"In what year did the first commercial offshore well in the Gulf of Mexico produce?", choices:["1938","1947","1955","1962"], answer:1},
+  {q:"What East Texas town is the East Texas Oil Museum located in?", choices:["Tyler","Longview","Henderson","Kilgore"], answer:3},
+  {q:"In what year was the Texas Railroad Commission given regulatory authority over oil and gas?", choices:["1891","1917","1933","1945"], answer:1},
+  {q:"What is a 'Christmas tree' on an oil well?", choices:["The valve assembly at the wellhead controlling flow","The drilling derrick","A pipe rack","A safety tower"], answer:0},
+  {q:"What did Texas oilmen call wells producing oil above legal allowable limits during the 1930s East Texas boom?", choices:["Hot oil","Black oil","Outlaw oil","Wildcat oil"], answer:0},
+
+  // ===== Operations terminology =====
+  {q:"What does 'tripping pipe' mean on a drilling rig?", choices:["Pulling drill pipe out of or running it into the hole","Cutting drill pipe to length","Welding drill pipe sections","Lubricating drill pipe joints"], answer:0},
+  {q:"What is the 'kelly' on a traditional rotary drilling rig?", choices:["The square or hex pipe that turns the drill string","The driller's chair","The mud tank","The crown block"], answer:0},
+  {q:"What replaced the kelly on most modern rigs?", choices:["The top drive","The swivel","The traveling block","The crown block"], answer:0},
+  {q:"What is a 'kick' in drilling?", choices:["An unexpected influx of formation fluids into the wellbore","A drill bit jamming","A pump failure","A pressure test"], answer:0},
+  {q:"What is the purpose of drilling mud weight?", choices:["To balance formation pressure and prevent blowouts","To cool the drill bit only","To lubricate the kelly","To weight down the rig"], answer:0},
+  {q:"What does 'fishing' mean on a drilling rig?", choices:["Recovering equipment lost or stuck in the hole","Cleaning out a wellbore","Testing for hydrocarbons","Setting a new bit"], answer:0},
+  {q:"What is a 'doghouse' on a drilling rig?", choices:["A small shelter on the rig floor for the driller and crew","The crew's housing trailer","The pump house","A storage shed"], answer:0},
+  {q:"What is the 'monkey board'?", choices:["The platform high in the derrick where the derrickman works","The driller's control console","The pipe rack","A safety harness anchor"], answer:0},
+  {q:"What is the V-door on a rig?", choices:["The opening through which pipe is brought onto the rig floor","The emergency exit","The mud pit access","The driller's window"], answer:0},
+  {q:"What is a 'rathole' in drilling?", choices:["A shallow hole drilled near the main hole to hold the kelly or extra pipe","A blocked drain","A fishing tool","A type of bit"], answer:0},
+  {q:"What is a 'mousehole' on a drilling rig?", choices:["A shallow hole used to make up the next joint of drill pipe","An emergency hatch","A drilling fluid drain","A type of valve"], answer:0},
+  {q:"What is a 'BOP stack'?", choices:["Multiple blowout preventers stacked together at the wellhead","Bottomhole pump assembly","Backup oil pumps","Backside operator panel"], answer:0},
+  {q:"What does an 'annular preventer' do?", choices:["Seals around any size of pipe in the wellbore","Cuts off pipe entirely","Measures annular pressure","Cleans the annulus"], answer:0},
+  {q:"What is 'mud logging'?", choices:["Continuously analyzing returns to detect hydrocarbons and formation changes","Recording mud weight only","Disposing of drilling mud","A type of cementing"], answer:0},
+  {q:"What does 'cementing' a well refer to?", choices:["Pumping cement into the annulus to bond casing to the formation","Pouring a foundation for the rig","Sealing the wellhead","Capping a dry hole"], answer:0},
+  {q:"What is a 'wireline' service?", choices:["Lowering instruments into a well on a cable to measure or perform work","A type of pipeline","Drill pipe","Communications cabling"], answer:0},
+  {q:"What is 'perforating' a well?", choices:["Creating holes through the casing to let oil flow in from the formation","Drilling a sidetrack","Casing inspection","Pressure testing"], answer:0},
+  {q:"What is 'workover' in oilfield language?", choices:["Maintenance or repair operations on an existing well","A change of shift","Overtime work","Pipeline repair"], answer:0},
+  {q:"What is a 'sour' well?", choices:["A well producing hydrogen sulfide gas","A well with low pressure","A well producing water","An abandoned well"], answer:0},
+  {q:"What is a 'sweet' crude?", choices:["Crude oil low in sulfur content","Crude with high sugar content","Crude from shallow wells","Premium-priced crude only"], answer:0},
+
+  // ===== Nicknames, lingo, people =====
+  {q:"What was the nickname for inexperienced new oilfield hands?", choices:["Boll weevils","Tenderfeet","Newhats","Greenies"], answer:0},
+  {q:"On a rig, what does the 'toolpusher' do?", choices:["Oversees the entire drilling operation","Sharpens drill bits","Manages the warehouse","Operates the mud pumps"], answer:0},
+  {q:"Who is the 'company man' on a drilling rig?", choices:["The representative of the oil company that hired the rig","The toolpusher","The senior driller","The mud engineer"], answer:0},
+  {q:"What did East Texas oilmen call wells that ran out of pipe to drill deeper?", choices:["Twisted off","Bottomed","Dry holes","Pinched out"], answer:0},
+  {q:"What does it mean if a rig is 'snake-bit'?", choices:["It has had one mechanical problem after another","It is operating in swamp country","It is being shut down","It struck a sour formation"], answer:0},
+  {q:"What was H.L. Hunt's most famous deal location with Dad Joiner?", choices:["The Baker Hotel in Dallas","The Adolphus Hotel in Dallas","A Kilgore drugstore","The Driskill in Austin"], answer:0},
+  {q:"What was the name of the cartoonist who created Alley Oop while working in West Texas oilfields?", choices:["V.T. Hamlin","Hank Ketcham","Charles Schulz","Walt Kelly"], answer:0},
+  {q:"What Texas oilfield town's name combines the first names of Ira and Ann Yates?", choices:["Iraan","Yatesville","Pecos","Crane"], answer:0},
+  {q:"What Texas wildcatter became wealthy from the Conroe oil field starting in 1931?", choices:["George Strake","H.L. Hunt","Sid Richardson","Glenn McCarthy"], answer:0},
+  {q:"What was the discovery year of the Yates oil field in West Texas?", choices:["1921","1923","1926","1931"], answer:2},
+  {q:"What 1894 discovery is considered the first commercial oil field in Texas?", choices:["Corsicana","Spindletop","Sour Lake","Petrolia"], answer:0},
+  {q:"What East Texas community was the site of Louisiana's first commercial oil well?", choices:["Evangeline (near Jennings)","Caddo","Homer","Plaquemine"], answer:0},
+  {q:"What was the name of the first over-water oil well in America, drilled in 1911 on Caddo Lake?", choices:["Ferry Lake No. 1","Caddo Lake No. 1","Pine Island No. 1","Heywood No. 1"], answer:0},
+  {q:"Bo Gray Casing Company of Carthage, Texas was acquired in 2002 by what company?", choices:["Tesco Corporation","Schlumberger","Halliburton","Baker Hughes"], answer:0},
+  {q:"What does the term 'top drive' refer to on a modern drilling rig?", choices:["A motorized system that rotates the drill string from the top","The traveling block hoist","The crown block","The mud pump drive"], answer:0},
+  {q:"What does an MWD tool do downhole?", choices:["Measurement while drilling, providing real-time data","Mud Weight Disposal","Manual Wellbore Drift","Multi-zone Wireline Drilling"], answer:0},
+  {q:"What does LWD stand for in downhole tools?", choices:["Logging While Drilling","Lateral Well Drift","Low Weight Drill","Long Wireline Drop"], answer:0},
+  {q:"What is 'cementing' typically performed by, as a contractor service?", choices:["Specialized pumping service companies like Halliburton or Schlumberger","The drilling crew alone","The casing crew","The wellhead supplier"], answer:0},
+  {q:"What is the function of a 'centralizer' on casing?", choices:["Keeps the casing centered in the wellbore for even cement coverage","Centers the drill bit","Aligns the rig","Holds the rotating head"], answer:0},
+  {q:"What does 'shoe track' refer to in casing operations?", choices:["The cemented section between the float collar and the casing shoe","The drilling shoe equipment","A tally mark on the shoe","Casing transport rack"], answer:0}
+];
+
+/* ---- Daily puzzle: deterministic 10-question set that changes once per day ---- */
+function seededShuffle(array, seed){
+  const arr = [...array];
+  let s = seed;
+  function rand(){
+    s = (s * 9301 + 49297) % 233280;
+    return s / 233280;
+  }
+  for(let i = arr.length - 1; i > 0; i--){
+    const j = Math.floor(rand() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+function dateSeed(){
+  const d = new Date();
+  // changes once per calendar day, stable across opens on the same day
+  return d.getFullYear() * 10000 + (d.getMonth()+1) * 100 + d.getDate();
+}
+function getDailyQuestions(){
+  const shuffled = seededShuffle(triviaBank, dateSeed());
+  return shuffled.slice(0, 10);
+}
+
+let triviaOrder=[], triviaIndex=0, triviaScore=0;
+
+function startTrivia(){
+  triviaOrder = getDailyQuestions();
+  triviaIndex = 0;
+  triviaScore = 0;
+  showTriviaQuestion();
+}
+
+function updateTriviaHeader(){
+  document.getElementById('trivia-progress').textContent = `Question ${triviaIndex+1} of ${triviaOrder.length}`;
+  document.getElementById('trivia-score').textContent = `Score: ${triviaScore}`;
+}
+function showTriviaQuestion(){
+  updateTriviaHeader();
+  const area = document.getElementById('trivia-question-area');
+  if(triviaIndex >= triviaOrder.length){
+    area.innerHTML = `
+      <div class="result-screen">
+        <div class="big-num">${triviaScore} / ${triviaOrder.length}</div>
+        <p>Nice work! Tap below to play again.</p>
+        <button class="next-btn" onclick="startTrivia()">Play Again</button>
+      </div>`;
+    return;
+  }
+  const q = triviaOrder[triviaIndex];
+  const order = q.choices.map((c,i)=>i).sort(()=>Math.random()-0.5);
+  area.innerHTML = `
+    <div class="q-card">
+      <div class="q-eyebrow">QUESTION ${triviaIndex+1}</div>
+      <div class="q-text">${q.q}</div>
+    </div>
+    <div class="choices" id="choices-wrap" style="margin-top:16px;"></div>
+    <div class="feedback" id="trivia-feedback"></div>
+  `;
+  const wrap = document.getElementById('choices-wrap');
+  order.forEach(idx=>{
+    const btn = document.createElement('button');
+    btn.className='choice-btn';
+    btn.textContent = q.choices[idx];
+    btn.onclick = ()=>answerTrivia(idx, q.answer, btn);
+    wrap.appendChild(btn);
+  });
+}
+function answerTrivia(chosenIdx, correctIdx, btnEl){
+  const allBtns = document.querySelectorAll('#choices-wrap .choice-btn');
+  allBtns.forEach(b=>b.disabled=true);
+  const feedback = document.getElementById('trivia-feedback');
+  if(chosenIdx === correctIdx){
+    btnEl.classList.add('correct');
+    triviaScore++;
+    feedback.textContent = "That's right!";
+    feedback.style.color = '#3f8f5f';
+  } else {
+    btnEl.classList.add('wrong');
+    allBtns.forEach(b=>{
+      if(b.textContent === triviaOrder[triviaIndex].choices[correctIdx]) b.classList.add('correct');
+    });
+    feedback.textContent = "Good try!";
+    feedback.style.color = '#c0463c';
+  }
+  updateTriviaHeader();
+  const next = document.createElement('button');
+  next.className='next-btn';
+  next.textContent = (triviaIndex+1 < triviaOrder.length) ? 'Next Question' : 'See Score';
+  next.onclick = ()=>{ triviaIndex++; showTriviaQuestion(); };
+  document.getElementById('trivia-question-area').appendChild(next);
+}
+
+/* ============================================================
+   WORD SEARCH GAME
+============================================================ */
+const wsWordBank = ["DERRICK","GUSHER","ROUGHNECK","CASING","PIPELINE","WILDCAT","DRILLING","CREW","TEXAS","BAYOU"];
+let wsGridSize = 10;
+let wsGrid = [];
+let wsWords = [];
+let wsFound = new Set();
+let wsSelecting = false;
+let wsSelectedCells = [];
+let wsPlacedPositions = {}; // word -> array of {r,c}
+
+function newWordSearch(){
+  wsWords = [...wsWordBank].sort(()=>Math.random()-0.5).slice(0,6).sort((a,b)=>b.length-a.length);
+  wsGrid = Array.from({length:wsGridSize}, ()=>Array(wsGridSize).fill(null));
+  wsPlacedPositions = {};
+  wsFound = new Set();
+  const dirs = [[0,1],[1,0],[1,1],[0,-1],[-1,0],[-1,-1],[1,-1],[-1,1]];
+
+  wsWords.forEach(word=>{
+    let placed=false, attempts=0;
+    while(!placed && attempts < 200){
+      attempts++;
+      const dir = dirs[Math.floor(Math.random()*dirs.length)];
+      const startR = Math.floor(Math.random()*wsGridSize);
+      const startC = Math.floor(Math.random()*wsGridSize);
+      const endR = startR + dir[0]*(word.length-1);
+      const endC = startC + dir[1]*(word.length-1);
+      if(endR<0||endR>=wsGridSize||endC<0||endC>=wsGridSize) continue;
+      let ok=true;
+      const positions=[];
+      for(let i=0;i<word.length;i++){
+        const r = startR+dir[0]*i, c = startC+dir[1]*i;
+        const existing = wsGrid[r][c];
+        if(existing!==null && existing!==word[i]){ ok=false; break; }
+        positions.push({r,c});
+      }
+      if(ok){
+        positions.forEach((p,i)=>{ wsGrid[p.r][p.c] = word[i]; });
+        wsPlacedPositions[word]=positions;
+        placed=true;
+      }
+    }
+  });
+  // fill remaining with random letters
+  const letters='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  for(let r=0;r<wsGridSize;r++)
+    for(let c=0;c<wsGridSize;c++)
+      if(wsGrid[r][c]===null) wsGrid[r][c] = letters[Math.floor(Math.random()*letters.length)];
+
+  renderWordSearch();
+}
+
+function renderWordSearch(){
+  const gridEl = document.getElementById('ws-grid');
+  gridEl.style.gridTemplateColumns = `repeat(${wsGridSize}, 34px)`;
+  gridEl.innerHTML='';
+  for(let r=0;r<wsGridSize;r++){
+    for(let c=0;c<wsGridSize;c++){
+      const cell = document.createElement('div');
+      cell.className='ws-cell';
+      cell.textContent = wsGrid[r][c];
+      cell.dataset.r=r; cell.dataset.c=c;
+      cell.addEventListener('pointerdown', e=>{ e.preventDefault(); startWsSelect(r,c); });
+      cell.addEventListener('pointerenter', ()=>{ if(wsSelecting) continueWsSelect(r,c); });
+      cell.addEventListener('pointerup', endWsSelect);
+      gridEl.appendChild(cell);
+    }
+  }
+  document.body.addEventListener('pointerup', endWsSelect);
+
+  const listEl = document.getElementById('ws-word-list');
+  listEl.innerHTML='';
+  wsWords.forEach(w=>{
+    const chip = document.createElement('div');
+    chip.className='word-chip';
+    chip.textContent = w;
+    chip.id = 'chip-'+w;
+    listEl.appendChild(chip);
+  });
+  document.getElementById('ws-progress').textContent = `Find all ${wsWords.length} words`;
+}
+
+function cellEl(r,c){ return document.querySelector(`.ws-cell[data-r="${r}"][data-c="${c}"]`); }
+
+function startWsSelect(r,c){
+  wsSelecting = true;
+  wsSelectedCells = [{r,c}];
+  paintWsSelection();
+}
+function continueWsSelect(r,c){
+  if(!wsSelecting) return;
+  const first = wsSelectedCells[0];
+  const dr = r-first.r, dc = c-first.c;
+  const steps = Math.max(Math.abs(dr),Math.abs(dc));
+  if(steps===0){ wsSelectedCells=[first]; paintWsSelection(); return; }
+  const stepR = dr===0?0:dr/Math.abs(dr);
+  const stepC = dc===0?0:dc/Math.abs(dc);
+  // only allow straight lines (horizontal, vertical, diagonal)
+  if(dr!==0 && dc!==0 && Math.abs(dr)!==Math.abs(dc)) return;
+  const cells=[];
+  for(let i=0;i<=steps;i++){
+    cells.push({r:first.r+stepR*i, c:first.c+stepC*i});
+  }
+  wsSelectedCells = cells;
+  paintWsSelection();
+}
+function paintWsSelection(){
+  document.querySelectorAll('.ws-cell.selected').forEach(el=>el.classList.remove('selected'));
+  wsSelectedCells.forEach(p=>{
+    const el = cellEl(p.r,p.c);
+    if(el && !el.classList.contains('found')) el.classList.add('selected');
+  });
+}
+function endWsSelect(){
+  if(!wsSelecting) return;
+  wsSelecting = false;
+  checkWsWord();
+  document.querySelectorAll('.ws-cell.selected').forEach(el=>el.classList.remove('selected'));
+  wsSelectedCells=[];
+}
+function checkWsWord(){
+  const letters = wsSelectedCells.map(p=>wsGrid[p.r][p.c]).join('');
+  const reversed = [...letters].reverse().join('');
+  for(const word of wsWords){
+    if(wsFound.has(word)) continue;
+    if(letters===word || reversed===word){
+      // verify matches actual placed positions (allow any direction)
+      wsFound.add(word);
+      wsSelectedCells.forEach(p=>{
+        const el = cellEl(p.r,p.c);
+        if(el) el.classList.add('found');
+      });
+      const chip = document.getElementById('chip-'+word);
+      if(chip) chip.classList.add('found');
+      if(wsFound.size === wsWords.length){
+        setTimeout(()=>{
+          document.getElementById('ws-progress').textContent = "🎉 All words found! Tap New Puzzle for another.";
+        }, 200);
+      }
+      return;
+    }
+  }
+}
+
+/* ============================================================
+   MATCH GAME (memory game)
+============================================================ */
+const matchEmojis = ['🛢️','⚙️','🔧','⛽','🪨','🚛','💧','🔥'];
+let matchCards = [];
+let matchFlipped = [];
+let matchTries = 0;
+let matchLockBoard = false;
+
+function newMatchGame(){
+  const chosen = [...matchEmojis].sort(()=>Math.random()-0.5).slice(0,6);
+  matchCards = [...chosen, ...chosen].sort(()=>Math.random()-0.5).map((sym,i)=>({id:i, sym, flipped:false, matched:false}));
+  matchFlipped = [];
+  matchTries = 0;
+  matchLockBoard = false;
+  renderMatchGame();
+}
+function renderMatchGame(){
+  document.getElementById('match-tries').textContent = `Tries: ${matchTries}`;
+  const grid = document.getElementById('match-grid');
+  grid.innerHTML='';
+  matchCards.forEach(card=>{
+    const el = document.createElement('div');
+    el.className = 'match-card' + (card.flipped?' flipped':'') + (card.matched?' matched':'');
+    el.textContent = (card.flipped||card.matched) ? card.sym : '?';
+    el.onclick = ()=>flipMatchCard(card.id);
+    grid.appendChild(el);
+  });
+}
+function flipMatchCard(id){
+  if(matchLockBoard) return;
+  const card = matchCards.find(c=>c.id===id);
+  if(card.flipped || card.matched) return;
+  card.flipped = true;
+  matchFlipped.push(card);
+  renderMatchGame();
+  if(matchFlipped.length===2){
+    matchTries++;
+    matchLockBoard = true;
+    const [a,b] = matchFlipped;
+    if(a.sym === b.sym){
+      a.matched = true; b.matched = true;
+      matchFlipped = [];
+      matchLockBoard = false;
+      renderMatchGame();
+    } else {
+      setTimeout(()=>{
+        a.flipped=false; b.flipped=false;
+        matchFlipped = [];
+        matchLockBoard = false;
+        renderMatchGame();
+      }, 1800);
+    }
+  }
+}
+
+/* ============================================================
+   MIND GAMES (common knowledge trivia + number sequences)
+   Uses the same daily-puzzle pattern as oil trivia, but with a
+   different seed offset so it doesn't pick the same set on the
+   same day as oil trivia.
+============================================================ */
+const mindBank = [
+  // ---------- Common knowledge ----------
+  {q:"What is the capital of Texas?", choices:["Houston","Dallas","Austin","San Antonio"], answer:2},
+  {q:"How many states are in the United States?", choices:["48","49","50","52"], answer:2},
+  {q:"What ocean is on the east coast of the United States?", choices:["Pacific","Atlantic","Indian","Arctic"], answer:1},
+  {q:"Who was the first president of the United States?", choices:["Thomas Jefferson","Abraham Lincoln","John Adams","George Washington"], answer:3},
+  {q:"What planet is known as the Red Planet?", choices:["Venus","Mars","Jupiter","Saturn"], answer:1},
+  {q:"How many days are in a leap year?", choices:["364","365","366","367"], answer:2},
+  {q:"What is the largest ocean on Earth?", choices:["Atlantic","Indian","Arctic","Pacific"], answer:3},
+  {q:"Which month has 28 or 29 days?", choices:["January","February","March","April"], answer:1},
+  {q:"What color do you get when you mix red and white?", choices:["Pink","Purple","Orange","Yellow"], answer:0},
+  {q:"How many sides does a triangle have?", choices:["Two","Three","Four","Five"], answer:1},
+  {q:"What is the largest state in the U.S. by area?", choices:["Texas","California","Alaska","Montana"], answer:2},
+  {q:"What animal is known as the King of the Jungle?", choices:["Tiger","Elephant","Lion","Bear"], answer:2},
+  {q:"What is the tallest mountain in the world?", choices:["Mount Everest","Mount McKinley","Mount Kilimanjaro","Mount Fuji"], answer:0},
+  {q:"In what country are the Pyramids of Giza?", choices:["Mexico","Greece","Egypt","Italy"], answer:2},
+  {q:"How many continents are there?", choices:["Five","Six","Seven","Eight"], answer:2},
+  {q:"Who wrote the play 'Romeo and Juliet'?", choices:["Charles Dickens","William Shakespeare","Mark Twain","Edgar Allan Poe"], answer:1},
+  {q:"What is the largest mammal in the world?", choices:["Elephant","Blue whale","Giraffe","Hippopotamus"], answer:1},
+  {q:"What is H2O more commonly known as?", choices:["Salt","Water","Sugar","Oxygen"], answer:1},
+  {q:"How many minutes are in an hour?", choices:["30","45","60","90"], answer:2},
+  {q:"What is the main language spoken in Brazil?", choices:["Spanish","Portuguese","English","French"], answer:1},
+  {q:"Which holiday is celebrated on December 25?", choices:["Thanksgiving","Christmas","New Year's","Easter"], answer:1},
+  {q:"What U.S. president is on the penny?", choices:["George Washington","Thomas Jefferson","Abraham Lincoln","Theodore Roosevelt"], answer:2},
+  {q:"What U.S. president is on the one dollar bill?", choices:["George Washington","Abraham Lincoln","Andrew Jackson","Benjamin Franklin"], answer:0},
+  {q:"What musical instrument has 88 keys?", choices:["Guitar","Piano","Trumpet","Violin"], answer:1},
+  {q:"How many wheels does a standard car have?", choices:["Two","Three","Four","Six"], answer:2},
+  {q:"What is the opposite of 'hot'?", choices:["Warm","Cold","Cool","Mild"], answer:1},
+  {q:"Which sport uses a 'home run'?", choices:["Baseball","Football","Basketball","Tennis"], answer:0},
+  {q:"What is the name of the song 'God Bless America' often called?", choices:["The national anthem","A patriotic song","A folk song","All of the above"], answer:1},
+  {q:"What is the largest country in the world by area?", choices:["United States","China","Canada","Russia"], answer:3},
+  {q:"What is the longest river in the United States?", choices:["Mississippi","Missouri","Rio Grande","Colorado"], answer:1},
+  {q:"What country gave the U.S. the Statue of Liberty as a gift?", choices:["England","Germany","France","Spain"], answer:2},
+  {q:"What is the currency used in the United States?", choices:["Pound","Euro","Peso","Dollar"], answer:3},
+  {q:"What part of the body pumps blood?", choices:["Lungs","Liver","Heart","Kidneys"], answer:2},
+  {q:"How many legs does a spider have?", choices:["Six","Eight","Ten","Twelve"], answer:1},
+  {q:"What classic Coca-Cola company is based in what U.S. city?", choices:["Atlanta","Dallas","Chicago","New York"], answer:0},
+  {q:"Which is bigger: an inch or a foot?", choices:["An inch","A foot","They're the same","Depends on the ruler"], answer:1},
+  {q:"What is the boiling temperature of water in Fahrenheit?", choices:["100","180","212","250"], answer:2},
+  {q:"What hand do most people write with?", choices:["Right","Left","Both","Neither"], answer:0},
+  {q:"What flower is yellow with a brown center and follows the sun?", choices:["Rose","Tulip","Sunflower","Daisy"], answer:2},
+  {q:"What country is directly south of the United States?", choices:["Cuba","Canada","Mexico","Guatemala"], answer:2},
+
+  // ---------- Number sequences (single best answer) ----------
+  {q:"What number comes next? 2, 4, 6, 8, ___", choices:["9","10","11","12"], answer:1},
+  {q:"What number comes next? 5, 10, 15, 20, ___", choices:["22","23","24","25"], answer:3},
+  {q:"What number comes next? 1, 3, 5, 7, ___", choices:["8","9","10","11"], answer:1},
+  {q:"What number comes next? 10, 20, 30, 40, ___", choices:["45","50","55","60"], answer:1},
+  {q:"What number comes next? 1, 2, 4, 8, ___", choices:["10","12","14","16"], answer:3},
+  {q:"What number comes next? 100, 90, 80, 70, ___", choices:["50","55","60","65"], answer:2},
+  {q:"What number is missing? 3, 6, ___, 12, 15", choices:["7","8","9","10"], answer:2},
+  {q:"What number is missing? 7, 14, 21, ___, 35", choices:["27","28","29","30"], answer:1},
+  {q:"What number comes next? 11, 22, 33, 44, ___", choices:["50","55","60","66"], answer:1},
+  {q:"What number comes next? 1, 4, 9, 16, ___", choices:["20","23","25","27"], answer:2},
+  {q:"What number comes next? 2, 5, 8, 11, ___", choices:["12","13","14","15"], answer:2},
+  {q:"What number comes next? 100, 95, 90, 85, ___", choices:["75","80","82","84"], answer:1},
+  {q:"What number is missing? 1, ___, 3, 4, 5, 6", choices:["1","2","3","4"], answer:1},
+  {q:"What number comes next? 4, 8, 12, 16, ___", choices:["18","19","20","21"], answer:2},
+  {q:"What number is missing? 5, 10, 15, ___, 25", choices:["18","19","20","22"], answer:2},
+  {q:"What number comes next? 50, 45, 40, 35, ___", choices:["25","28","30","32"], answer:2},
+  {q:"What number comes next? 1, 1, 2, 3, 5, ___", choices:["6","7","8","9"], answer:2},
+  {q:"What number comes next? 9, 18, 27, 36, ___", choices:["42","45","48","50"], answer:1},
+  {q:"What number is missing? 2, 4, ___, 8, 10", choices:["5","6","7","9"], answer:1},
+  {q:"What number comes next? 6, 12, 18, 24, ___", choices:["28","30","32","36"], answer:1},
+  {q:"What number comes next? 1000, 900, 800, 700, ___", choices:["500","550","600","650"], answer:2},
+  {q:"What number comes next? 3, 9, 27, 81, ___", choices:["120","162","200","243"], answer:3},
+  {q:"What number is missing? 12, 14, 16, ___, 20", choices:["17","18","19","21"], answer:1},
+  {q:"What number comes next? 1, 10, 100, 1000, ___", choices:["5000","10000","100000","1000000"], answer:1},
+  {q:"What number comes next? 7, 9, 11, 13, ___", choices:["14","15","16","17"], answer:1},
+  {q:"What number is missing? 20, 18, 16, ___, 12", choices:["13","14","15","17"], answer:1}
+];
+
+function getDailyMindQuestions(){
+  // offset the seed so daily mind games differ from daily oil trivia
+  const shuffled = seededShuffle(mindBank, dateSeed() + 7777);
+  return shuffled.slice(0, 10);
+}
+
+let mindOrder=[], mindIndex=0, mindScore=0;
+
+function startMind(){
+  mindOrder = getDailyMindQuestions();
+  mindIndex = 0;
+  mindScore = 0;
+  showMindQuestion();
+}
+function updateMindHeader(){
+  document.getElementById('mind-progress').textContent = `Question ${mindIndex+1} of ${mindOrder.length}`;
+  document.getElementById('mind-score').textContent = `Score: ${mindScore}`;
+}
+function showMindQuestion(){
+  updateMindHeader();
+  const area = document.getElementById('mind-question-area');
+  if(mindIndex >= mindOrder.length){
+    area.innerHTML = `
+      <div class="result-screen">
+        <div class="big-num">${mindScore} / ${mindOrder.length}</div>
+        <p>Great job! Come back tomorrow for a new set, or play again now.</p>
+        <button class="next-btn" onclick="startMind()">Play Again</button>
+      </div>`;
+    return;
+  }
+  const q = mindOrder[mindIndex];
+  const order = q.choices.map((c,i)=>i).sort(()=>Math.random()-0.5);
+  area.innerHTML = `
+    <div class="q-card">
+      <div class="q-eyebrow">QUESTION ${mindIndex+1}</div>
+      <div class="q-text">${q.q}</div>
+    </div>
+    <div class="choices" id="mind-choices-wrap" style="margin-top:16px;"></div>
+    <div class="feedback" id="mind-feedback"></div>
+  `;
+  const wrap = document.getElementById('mind-choices-wrap');
+  order.forEach(idx=>{
+    const btn = document.createElement('button');
+    btn.className='choice-btn';
+    btn.textContent = q.choices[idx];
+    btn.onclick = ()=>answerMind(idx, q.answer, btn);
+    wrap.appendChild(btn);
+  });
+}
+function answerMind(chosenIdx, correctIdx, btnEl){
+  const allBtns = document.querySelectorAll('#mind-choices-wrap .choice-btn');
+  allBtns.forEach(b=>b.disabled=true);
+  const feedback = document.getElementById('mind-feedback');
+  const correctText = mindOrder[mindIndex].choices[correctIdx];
+  if(chosenIdx === correctIdx){
+    btnEl.classList.add('correct');
+    mindScore++;
+    feedback.textContent = "That's right!";
+    feedback.style.color = '#3f8f5f';
+  } else {
+    btnEl.classList.add('wrong');
+    allBtns.forEach(b=>{
+      if(b.textContent === correctText) b.classList.add('correct');
+    });
+    feedback.textContent = "Good try! The correct answer is highlighted.";
+    feedback.style.color = '#c0463c';
+  }
+  updateMindHeader();
+  const next = document.createElement('button');
+  next.className='next-btn';
+  next.textContent = (mindIndex+1 < mindOrder.length) ? 'Next Question' : 'See Score';
+  next.onclick = ()=>{ mindIndex++; showMindQuestion(); };
+  document.getElementById('mind-question-area').appendChild(next);
+}
+</script>
+</body>
+</html>
